@@ -145,18 +145,33 @@ def generate_nutrition(goal):
         stop=None,
     )
 
-    return completion.choices[0].message.content
+    nutrition_content = ""
+    for chunk in completion:
+            nutrition_content += chunk.choices[0].delta.content or ""
+
+    return nutrition_content
 
 TITLE = """ 
-<h1>AI Chatbot for Personal Training, Nutrition and Fitness</h1>
+<h1>Welcome to GainsGPT! </h1>
+<p>A state of the art chatbot who will help you reach </p>
 <p>Ask the AI Chatbot about creating fitness plans, defining workout goals or providing information about dietary requirements</p>
-<p>Provide concise, structured and insightful respones to queries</p>
+<p>Check out GainsGPT Fitness Plan Generator to make a fitness plan tailored to your specific needs</p>
+<p>Check out GainsGPT Nutrition Guide for any nutrition inquiries you may have to get to your fitness goals!</p>
+
 """
 
 TITLE2 = """ 
-<h1>Fitness Plan Generator</h1>
-<p>Generate a structured table that contains a weekly workout schedule for a given fitness goal and activity level</p>
+<h1>GainsGPT 💪🏼 Fitness Plan Generator</h1>
 <p>Include the appropriate days of the week for the specified workout, whether it is a 3-day, 4-day, 5-day, 6-day or 7-day workout plan</p>
+
+<p> Please specify your fitness level [beginner, intermediate, advanced] and GainsGPT will generate a workout plan for you!</p>
+<p>Generate a structured table that contains a weekly workout schedule for a given fitness goal and activity level</p>
+<hr>
+
+"""
+TITLE3 = """ 
+<h1>GainsGPT Nutrition Guide</h1>
+<p>Please provide any dietary restrictions (e.g., vegetarian, vegan, gluten-free, halal) you have to GainsGPT </p>
 """
 
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
@@ -184,28 +199,63 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 outputs=user_input
             )
         with gr.TabItem("Generate Fitness Plan"):
-            gr.HTML(TITLE2)
-            chaBot = gr.Textbox(label="FitBot")
-            with gr.Row():
-                fitness_input = gr.Textbox(
-                    label="Your Message",
-                    placeholder="Type your question here...",
-                    lines=1              
+           gr.HTML(TITLE2)
+           fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
+           with gr.Row():
+            fitness_input = gr.Textbox(
+                label="Fitness Goal!",
+                placeholder="Let GainsGPT know your activity level and how many days you want to work out",
+                lines=1
                 )
-                butOn = gr.Button("Ask Question")
+            send_button = gr.Button("Show Me The Gains 🏋️‍♀️", variant="secondary", elem_id="send-btn")  # Send button with an icon
 
-                # Chatbot functionality: Update chatbot and clear text input
-            butOn.click(
-                fn=generate_fitness,  
+            # Submit via Enter key or clicking the button
+            fitness_input.submit(
+                fn=lambda goal: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
                 inputs=fitness_input,
-                outputs=chaBot,
-                queue=True  # Enables streaming responses
+                outputs=fitness_output
             ).then(
-                fn=lambda: "",  # Clear the input box after sending
+                fn=generate_fitness,
+                inputs=fitness_input,
+                outputs=fitness_output
+            ).then(
+                fn=lambda: "",
                 inputs=None,
                 outputs=fitness_input
             )
 
+            send_button.click(
+                fn=lambda goal: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
+                inputs=fitness_input,
+                outputs=fitness_output
+            ).then(
+                fn=generate_fitness,
+                inputs=fitness_input,
+                outputs=fitness_output
+            ).then(
+                fn=lambda: "",
+                inputs=None,
+                outputs=fitness_input
+            )
+                    
+            example_questions = [
+                    ["What's a good workout plan for beginners?"],
+                    ["How can I build muscle effectively?"],
+                    ["What are the best exercises for fat loss?"],
+                    ["How many rest days should I take per week?"],
+                    ["Should I train abs every day?"],
+                    ["What's the best diet for gaining muscle?"],
+                    ["How do I improve my squat form?"],
+                    ["What’s a good workout split for a 4-day routine?"],
+                    ["How much protein should I eat daily for muscle gain?"],
+                    ["What’s the best way to recover after a tough workout?"],
+                    ["Is cardio necessary for weight loss?"],
+                    ["Can I build muscle with just bodyweight exercises?"],
+                    ["How do I prevent injuries while working out?"],
+                ]
+
+            gr.Examples(examples=example_questions, inputs=[fitness_input])
+            
 
 if __name__ == "__main__":
     demo.launch()
