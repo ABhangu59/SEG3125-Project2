@@ -45,7 +45,8 @@ def chatbot_stream(user_input):
             msg["content"] if msg["role"] == "assistant" else None) 
             for msg in conversation_history]
 
-def generate_fitness(goal):
+def generate_fitness(goal, language):
+
     if not goal.strip():
         return "Please provide a fitness goal and activity level (basic, intermediate, active) to generate an action plan."
     messages = [
@@ -53,21 +54,18 @@ def generate_fitness(goal):
             "role": "system",
             "content": 
             """
-            You are a supportive and empathetic personal trainer or fitness guru. You will generate a structured table that contains a weekly workout schedule for a given fitness goal and activity leve.
+            You are a supportive and empathetic personal trainer or fitness guru. You will generate a structured table that contains a weekly workout schedule for a given fitness goal and activity level.
             For the schedule you will include
             1) The appropriate days of the week for the specified workout, whether it is a 3-day, 4-day, 5-day, 6-day or 7-day workout plan. Mention the standard Monday-Wednesday-Friday workout plan but keep the label for the days generic like "Day 1".
             2) For each day focus on a different muscle group (back, chest, etc) to prevent fatigue and injury.
             3) Each exercise should include the number of sets and reps relative to the user's fitness capability (i.e. if they are a beginner or more intermediate).
-            4) Outside of the table, mention the importance of warm-up exercises and stretching. 
-            If the user's activity level is basic,
-            - mention tips about time between different sets of an exercise, training until failure, and prioritizing the form of the exercise over the weight.
-            - speak in a friendly and encouraging tone.
-            Cater the language level of the response to the activity level of the user. If they are more advanced, you can use terms that are more commonly used in the fitness world.
+            4) Outside of the table, mention the importance of warm-up exercises, stretching and proper hydration. 
+            Cater the language level of the response to the activity level of the user. If they are more advanced, use terms that are more commonly used in the fitness world.
             """
         },
         {
             "role": "user",
-            "content": f"{goal}"
+            "content": f"Generate a fitness plan for {goal} and respond in the language of the input. Use the locale {language} if needed for dates, measurements or other localization factors."
         }
     ]
 
@@ -87,7 +85,7 @@ def generate_fitness(goal):
 
     return fitness_content
 
-def generate_nutrition(goal):
+def generate_nutrition(goal, language):
     if not goal.strip():
         return "Please provide a nutrition goal (weight loss, muscle gain, balanced diet) to generate a meal plan."
     messages = [
@@ -101,7 +99,7 @@ def generate_nutrition(goal):
         For the meal plan, you will: 
         1) Generate a 7-day meal plan with detailed food recommendations tailored to the given nutrition goal.
         2) Each day should include Breakfast, Lunch, Dinner, and Snacks, ensuring variety and nutrient balance.
-        3) Label the days as "Day 1," "Day 2," etc., to maintain flexibility while structuring a sustainable plan.
+        3) Label the days as "Day 1," "Day 2," etc., in the appropriate language to maintain flexibility while structuring a sustainable plan.
         4) For each meal, suggest portion sizes, macronutrient breakdown (carbs, proteins, fats), and specific food items that align with the user’s goal.
         5) Provide substitutions for common dietary restrictions (e.g., vegetarian, vegan, gluten-free, halal) if needed.
 
@@ -131,7 +129,7 @@ def generate_nutrition(goal):
     },
     {
         "role": "user",
-        "content": f"{goal}"    
+        "content": f"Generate a nutrition plan for {goal} and respond in the language of the input. Use the locale {language} if needed for dates, measurements or other localization factors."    
     }
     ]
 
@@ -174,7 +172,18 @@ TITLE3 = """
 <p>Please provide any dietary restrictions (e.g., vegetarian, vegan, gluten-free, halal) you have to GainsGPT </p>
 """
 
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
+js = """
+function setUserLanguage() {
+        let userLang = navigator.language || navigator.userLanguage;
+        const hiddenLangTextarea = document.querySelector('#hidden-lang-box textarea');
+        hiddenLangTextarea.value = userLang;
+
+        console.log(hiddenLangTextarea.value)
+    }
+"""
+
+with gr.Blocks(theme=gr.themes.Soft(), js=js) as demo:
+    hidden_lang = gr.Textbox(visible=False, elem_id="hidden-lang-box")
     with gr.Tabs():
         with gr.TabItem("Inquire About Health"):
             gr.HTML(TITLE)
@@ -188,73 +197,130 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 send_button = gr.Button("Ask Question")
 
                 # Chatbot functionality: Update chatbot and clear text input
-            send_button.click(
-                fn=chatbot_stream,  
-                inputs=user_input,
-                outputs=chatbot,
-                queue=True  # Enables streaming responses
-            ).then(
-                fn=lambda: "",  # Clear the input box after sending
-                inputs=None,
-                outputs=user_input
-            )
-        with gr.TabItem("Generate Fitness Plan"):
-           gr.HTML(TITLE2)
-           fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
-           with gr.Row():
-            fitness_input = gr.Textbox(
-                label="Fitness Goal!",
-                placeholder="Let GainsGPT know your activity level and how many days you want to work out",
-                lines=1
+                send_button.click(
+                    fn=chatbot_stream,  
+                    inputs=user_input,
+                    outputs=chatbot,
+                    queue=True  # Enables streaming responses
+                ).then(
+                    fn=lambda: "",  # Clear the input box after sending
+                    inputs=None,
+                    outputs=user_input
                 )
-            send_button = gr.Button("Show Me The Gains 🏋️‍♀️", variant="secondary", elem_id="send-btn")  # Send button with an icon
+        with gr.TabItem("Generate Fitness Plan"):
+            gr.HTML(TITLE2)
+           
+            with gr.Row():
+                with gr.Column():
+                    fitness_input = gr.Textbox(
+                        label="Fitness Goal!",
+                        placeholder="Let GainsGPT know your activity level and how many days you want to work out",
+                        lines=1
+                        )
+                    send_button = gr.Button("Show Me The Gains 🏋️‍♀️", variant="secondary", elem_id="send-btn")  # Send button with an icon
+                
+                with gr.Column():
+                    example_questions = [
+                            ["What's a good workout plan for beginners?"],
+                            ["How can I build muscle effectively?"],
+                            ["What are the best exercises for fat loss?"],
+                            ["What’s a good workout split for a 4-day routine?"],
+                            ["What’s the best way to recover after a tough workout?"],
+                            ["Is cardio necessary for weight loss?"],
+                            ["Can I build muscle with just bodyweight exercises?"],
+                            ["How do I prevent injuries while working out?"],
+                        ]
 
-            # Submit via Enter key or clicking the button
-            fitness_input.submit(
-                fn=lambda goal: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
-                inputs=fitness_input,
-                outputs=fitness_output
-            ).then(
-                fn=generate_fitness,
-                inputs=fitness_input,
-                outputs=fitness_output
-            ).then(
-                fn=lambda: "",
-                inputs=None,
-                outputs=fitness_input
-            )
+                    gr.Examples(examples=example_questions, inputs=[fitness_input])
+            with gr.Row():
+                fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
+                # Submit via Enter key or clicking the button
+                fitness_input.submit(
+                    fn=lambda goal, lang: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
+                    inputs=[fitness_input,hidden_lang],
+                    outputs=fitness_output
+                ).then(
+                    fn=generate_fitness,
+                    inputs=[fitness_input,hidden_lang],
+                    outputs=fitness_output
+                ).then(
+                    fn=lambda: "",
+                    inputs=None,
+                    outputs=fitness_input
+                )
 
-            send_button.click(
-                fn=lambda goal: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
-                inputs=fitness_input,
-                outputs=fitness_output
-            ).then(
-                fn=generate_fitness,
-                inputs=fitness_input,
-                outputs=fitness_output
-            ).then(
-                fn=lambda: "",
-                inputs=None,
-                outputs=fitness_input
-            )
+                send_button.click(
+                    fn=lambda goal, lang: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
+                    inputs=[fitness_input,hidden_lang],
+                    outputs=fitness_output
+                ).then(
+                    fn=generate_fitness,
+                    inputs=[fitness_input,hidden_lang],
+                    outputs=fitness_output
+                ).then(
+                    fn=lambda: "",
+                    inputs=None,
+                    outputs=fitness_input
+                )
+        with gr.TabItem("Generate Nutrition Plan"):
+            gr.HTML(TITLE3)
+
+            with gr.Row():
+                with gr.Column():
+                    nutrition_input = gr.Textbox(
+                        label="Nutrition Goal!",
+                        placeholder="Let GainsGPT know your nutrition goal and your dietary restrictions/preferences",
+                        lines=1
+                        )
+                    send_button = gr.Button("Show Me The Food 🥬", variant="secondary", elem_id="send-btn")  # Send button with an icon
                     
-            example_questions = [
-                    ["What's a good workout plan for beginners?"],
-                    ["How can I build muscle effectively?"],
-                    ["What are the best exercises for fat loss?"],
-                    ["How many rest days should I take per week?"],
-                    ["Should I train abs every day?"],
-                    ["What's the best diet for gaining muscle?"],
-                    ["How do I improve my squat form?"],
-                    ["What’s a good workout split for a 4-day routine?"],
-                    ["How much protein should I eat daily for muscle gain?"],
-                    ["What’s the best way to recover after a tough workout?"],
-                    ["Is cardio necessary for weight loss?"],
-                    ["Can I build muscle with just bodyweight exercises?"],
-                    ["How do I prevent injuries while working out?"],
-                ]
+                with gr.Column():
+                    example_questions = [
+                            ["Can you help me create a 7-day meal plan for weight loss?"],
+                            ["What are some healthy snacks I can include in my diet?"],
+                            ["I want to gain muscle. What should my meal plan look like?"],
+                            ["What are some vegetarian options for my weekly meal plan?"],
+                            ["How can I ensure I get enough protein in a vegan diet?"],
+                            ["Can you provide a balanced meal plan for general health?"],
+                            ["What are some gut-friendly foods I should include?"],
+                            ["How do I calculate portion sizes for my meals?"],
+                            ["Can you help me substitute gluten-free options in my meal plan?"],
+                            ["What are some low-calorie snacks that are high in protein?"],
+                            ["What’s a simple meal plan for beginners focusing on healthy eating?"],
+                            ["How can I manage my cravings while on a diet?"]
+                        ]
 
-            gr.Examples(examples=example_questions, inputs=[fitness_input])
+                    gr.Examples(examples=example_questions, inputs=[nutrition_input])
+            with gr.Row():
+                nutrition_output = gr.Markdown("### Your Nutrition Plan Will Appear Here, Get Ready For The Yum!", elem_id="nutrition-markdown")
+                # Submit via Enter key or clicking the button
+                nutrition_input.submit(
+                    fn=lambda goal, lang: "Generating your nutrition plan... ⏳" if goal.strip() else "Please provide a nutrition goal first.",
+                    inputs=[nutrition_input,hidden_lang],
+                    outputs=nutrition_output
+                ).then(
+                    fn=generate_nutrition,
+                    inputs=[nutrition_input,hidden_lang],
+                    outputs=nutrition_output
+                ).then(
+                    fn=lambda: "",
+                    inputs=None,
+                    outputs=nutrition_input
+                )
+
+                send_button.click(
+                    fn=lambda goal, lang: "Generating your nutrition plan... ⏳" if goal.strip() else "Please provide a nutrition goal first.",
+                    inputs=[nutrition_input,hidden_lang],
+                    outputs=nutrition_output
+                ).then(
+                    fn=generate_nutrition,
+                    inputs=[nutrition_input,hidden_lang],
+                    outputs=nutrition_output
+                ).then(
+                    fn=lambda: "",
+                    inputs=None,
+                    outputs=nutrition_input
+                )
             
 
 if __name__ == "__main__":
