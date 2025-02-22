@@ -193,10 +193,16 @@ def generate_frNutrition_tts(input):
 # HTML & JS Elements: 
 TITLE = """ 
 <h1>Welcome to GainsGPT! </h1>
-<p>A state of the art chatbot who will help you reach </p>
+<p>A state of the art chatbot who will help you reach your fitness goals and dream physique! </p>
+
 <p>Ask the AI Chatbot about creating fitness plans, defining workout goals or providing information about dietary requirements</p>
-<p>Check out GainsGPT Fitness Plan Generator to make a fitness plan tailored to your specific needs</p>
-<p>Check out GainsGPT Nutrition Guide for any nutrition inquiries you may have to get to your fitness goals!</p>
+
+<ul> 
+<li>Don't forget to check out the other two tabs</li>
+<li>Check out GainsGPT Fitness Plan Generator to make a fitness plan tailored to your specific needs </li>
+<li>Check out GainsGPT Nutrition Guide for any nutrition inquiries you may have to get to your fitness goals! </li>
+</ul>
+
 
 """
 
@@ -223,23 +229,36 @@ function setUserLanguage() {
         console.log(hiddenLangTextarea.value)
     }
 """
+
+CSS = """
+body { 
+background-color: #f0f0f0;
+}
+
+
+"""
+
+
 # ----------------------------------------------------------------------------
 
 # Gradio Interface: 
-with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js) as demo:
+with gr.Blocks(fill_width=True,theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js, css = CSS) as demo:
     hidden_lang = gr.Textbox(visible=False, elem_id="hidden-lang-box")
+    gr.Image("image.jpg", show_label=False, show_download_button = False, show_fullscreen_button = False)
     with gr.Tabs():
         # General Chatbot: 
         with gr.TabItem("Inquire About Health"):
             gr.HTML(TITLE)
             chatbot = gr.Chatbot(label="Got Any Questions? 💪🏼")
-            with gr.Row():
+            with gr.Row(equal_height=True, height=60):
                 user_input = gr.Textbox(
-                    label="Your Message",
-                    placeholder="Type your question here...",
-                    lines=1
-                )
-                send_button = gr.Button("Ask Question")
+                        placeholder="Type your question here...",
+                        lines=1,
+                        show_label=False,
+                        elem_classes="user-in-chatbot1",
+                        scale=1
+                    )
+                send_button = gr.Button("Ask", elem_classes="btn-1", scale=0)
 
                 # Chatbot functionality: Update chatbot and clear text input
                 send_button.click(
