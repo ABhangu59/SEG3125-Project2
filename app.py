@@ -3,7 +3,7 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 from generate_audio import generate_audio
-from script_generator import generate_script, generate_french_script
+from script_generator import generate_script, generate_french_script, generate_french_nutrition_tts, generate_nutrition_tts
 
 load_dotenv()
 
@@ -13,7 +13,7 @@ client = Groq(api_key=api_key)
 
 conversation_history = []
 
-# Setting up the AI CHatbot interface
+# Functions for setting up the different chatbot streams
 def chatbot_stream(user_input):
     global conversation_history
     conversation_history.append({"role": "user", "content": user_input})
@@ -150,8 +150,10 @@ def generate_nutrition(goal, language):
             nutrition_content += chunk.choices[0].delta.content or ""
 
     return nutrition_content
+#--------------------------------------------------------------------------------------------------
 
-def generate_engTextToSpeech(input):
+# Functions for Text To Speech: 
+def generate_engFitness_tts(input):
     queries = [msg[0] for msg in input if msg[0]]
     conversation_text = "\n".join(queries)
 
@@ -160,7 +162,7 @@ def generate_engTextToSpeech(input):
 
     return script, audio_path
 
-def generate_frTextToSpeech(input):
+def generate_frFitness_tts(input):
     queries = [msg[0] for msg in input if msg[0]]
     conversation_text = "\n".join(queries)
 
@@ -169,7 +171,26 @@ def generate_frTextToSpeech(input):
 
     return script, audio_path
 
+def generate_engNutrition_tts(input):
+    queries = [msg[0] for msg in input if msg[0]]
+    conversation_text = "\n".join(queries)
 
+    script = generate_nutrition_tts(conversation_text)
+    audio_path = generate_audio(script)
+
+    return script, audio_path
+
+def generate_frNutrition_tts(input):
+    queries = [msg[0] for msg in input if msg[0]]
+    conversation_text = "\n".join(queries)
+
+    script = generate_french_nutrition_tts(conversation_text)
+    audio_path = generate_audio(script)
+
+    return script, audio_path
+# -------------------------------------------------------------------------
+
+# HTML & JS Elements: 
 TITLE = """ 
 <h1>Welcome to GainsGPT! </h1>
 <p>A state of the art chatbot who will help you reach </p>
@@ -202,10 +223,13 @@ function setUserLanguage() {
         console.log(hiddenLangTextarea.value)
     }
 """
+# ----------------------------------------------------------------------------
 
-with gr.Blocks(theme=gr.themes.Soft(primary_hue="green", secondary_hue="yellow"), js=js) as demo:
+# Gradio Interface: 
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js) as demo:
     hidden_lang = gr.Textbox(visible=False, elem_id="hidden-lang-box")
     with gr.Tabs():
+        # General Chatbot: 
         with gr.TabItem("Inquire About Health"):
             gr.HTML(TITLE)
             chatbot = gr.Chatbot(label="Got Any Questions? 💪🏼")
@@ -228,9 +252,9 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="green", secondary_hue="yellow")
                     inputs=None,
                     outputs=user_input
                 )
+        # Fitness Tab: 
         with gr.TabItem("Generate Fitness Plan"):
             gr.HTML(TITLE2)
-           
             with gr.Row():
                 with gr.Column():
                     fitness_input = gr.Textbox(
@@ -292,16 +316,17 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="green", secondary_hue="yellow")
             with gr.Row():
                 podcast_button = gr.Button("Generate English Podcast Script and Audio")
                 podcast_button.click(
-                    fn=generate_engTextToSpeech,
+                    fn=generate_engFitness_tts,
                     inputs=fitness_output,
                     outputs=[podcast_output, audio_output]
                 )
                 fr_pod_button = gr.Button("Generate French Podcast Script and Audio")
                 fr_pod_button.click(
-                    fn=generate_frTextToSpeech,
+                    fn=generate_frFitness_tts,
                     inputs=fitness_output,
                     outputs=[podcast_output, audio_output]
                 )
+        # Nutrition Page 
         with gr.TabItem("Generate Nutrition Plan"):
             gr.HTML(TITLE3)
 
@@ -313,8 +338,9 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="green", secondary_hue="yellow")
                         lines=1
                         )
                     send_button = gr.Button("Show Me The Food 🥬", variant="secondary", elem_id="send-btn")  # Send button with an icon
-                    
-                with gr.Column():
+
+            with gr.Row():
+                with gr.Accordion(label="Some Quick Questions You Can Ask:"):
                     example_questions = [
                             ["Can you help me create a 7-day meal plan for weight loss?"],
                             ["What are some healthy snacks I can include in my diet?"],
@@ -361,7 +387,25 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="green", secondary_hue="yellow")
                     inputs=None,
                     outputs=nutrition_input
                 )
-            
+            with gr.Row():
+                gr.HTML("<br> <hr> <br> <h2>Listen On The Go With Our Text To Speech Functionality</h2>")
+            with gr.Row():
+                podcast_output = gr.Textbox(label="Behind The Scenes of Your Nutrition Plan in Audio Form:", placeholder="A readable script will appear here!", interactive = False)
+            with gr.Row():
+                audio_output = gr.Audio(label="Want To Listen To Your Nutrition Plan?")
+            with gr.Row():
+                podcast_button = gr.Button("Generate English Podcast Script and Audio")
+                podcast_button.click(
+                    fn=generate_engNutrition_tts,
+                    inputs=nutrition_output,
+                    outputs=[podcast_output, audio_output]
+                )
+                fr_pod_button = gr.Button("Generate French Podcast Script and Audio")
+                fr_pod_button.click(
+                    fn=generate_frNutrition_tts,
+                    inputs=nutrition_output,
+                    outputs=[podcast_output, audio_output]
+                )
 
 if __name__ == "__main__":
     demo.launch()
