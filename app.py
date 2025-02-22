@@ -406,6 +406,8 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                     inputs=nutrition_output,
                     outputs=[podcast_output, audio_output]
                 )
+# ----------------------------------------------------------------------------
 
+# Launching the app:
 if __name__ == "__main__":
     demo.launch()
