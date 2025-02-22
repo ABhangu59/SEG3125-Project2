@@ -2,6 +2,8 @@ import gradio as gr
 from groq import Groq
 from dotenv import load_dotenv
 import os
+from generate_audio import generate_audio
+from script_generator import generate_script, generate_french_script
 
 load_dotenv()
 
@@ -149,6 +151,25 @@ def generate_nutrition(goal, language):
 
     return nutrition_content
 
+def generate_engTextToSpeech(input):
+    queries = [msg[0] for msg in input if msg[0]]
+    conversation_text = "\n".join(queries)
+
+    script = generate_script(conversation_text)
+    audio_path = generate_audio(script)
+
+    return script, audio_path
+
+def generate_frTextToSpeech(input):
+    queries = [msg[0] for msg in input if msg[0]]
+    conversation_text = "\n".join(queries)
+
+    script = generate_french_script(conversation_text)
+    audio_path = generate_audio(script)
+
+    return script, audio_path
+
+
 TITLE = """ 
 <h1>Welcome to GainsGPT! </h1>
 <p>A state of the art chatbot who will help you reach </p>
@@ -182,7 +203,7 @@ function setUserLanguage() {
     }
 """
 
-with gr.Blocks(theme=gr.themes.Soft(), js=js) as demo:
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="green", secondary_hue="yellow"), js=js) as demo:
     hidden_lang = gr.Textbox(visible=False, elem_id="hidden-lang-box")
     with gr.Tabs():
         with gr.TabItem("Inquire About Health"):
@@ -218,8 +239,8 @@ with gr.Blocks(theme=gr.themes.Soft(), js=js) as demo:
                         lines=1
                         )
                     send_button = gr.Button("Show Me The Gains 🏋️‍♀️", variant="secondary", elem_id="send-btn")  # Send button with an icon
-                
-                with gr.Column():
+            with gr.Row():
+                with gr.Accordion(label="Some Questions You Can Ask:"):
                     example_questions = [
                             ["What's a good workout plan for beginners?"],
                             ["How can I build muscle effectively?"],
@@ -229,8 +250,9 @@ with gr.Blocks(theme=gr.themes.Soft(), js=js) as demo:
                             ["Is cardio necessary for weight loss?"],
                             ["Can I build muscle with just bodyweight exercises?"],
                             ["How do I prevent injuries while working out?"],
-                        ]
+                            ["As a beginner, whats 5 day routine I can use to get started on my fitness journey?"],
 
+                        ]
                     gr.Examples(examples=example_questions, inputs=[fitness_input])
             with gr.Row():
                 fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
@@ -248,7 +270,6 @@ with gr.Blocks(theme=gr.themes.Soft(), js=js) as demo:
                     inputs=None,
                     outputs=fitness_input
                 )
-
                 send_button.click(
                     fn=lambda goal, lang: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
                     inputs=[fitness_input,hidden_lang],
@@ -261,6 +282,25 @@ with gr.Blocks(theme=gr.themes.Soft(), js=js) as demo:
                     fn=lambda: "",
                     inputs=None,
                     outputs=fitness_input
+                )
+            with gr.Row():
+                gr.HTML("<br> <hr> <br> <h2>Listen On The Go With Our Text To Speech Functionality</h2>")
+            with gr.Row():
+                podcast_output = gr.Textbox(label="Behind The Scenes of Your Fitness Plan in Audio Form:", placeholder="A readable script will appear here!", interactive = False)
+            with gr.Row():
+                audio_output = gr.Audio(label="Want To Listen To Your Fitness Plan?")
+            with gr.Row():
+                podcast_button = gr.Button("Generate English Podcast Script and Audio")
+                podcast_button.click(
+                    fn=generate_engTextToSpeech,
+                    inputs=fitness_output,
+                    outputs=[podcast_output, audio_output]
+                )
+                fr_pod_button = gr.Button("Generate French Podcast Script and Audio")
+                fr_pod_button.click(
+                    fn=generate_frTextToSpeech,
+                    inputs=fitness_output,
+                    outputs=[podcast_output, audio_output]
                 )
         with gr.TabItem("Generate Nutrition Plan"):
             gr.HTML(TITLE3)
