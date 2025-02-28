@@ -47,7 +47,7 @@ def chatbot_stream(user_input):
             msg["content"] if msg["role"] == "assistant" else None) 
             for msg in conversation_history]
 
-def generate_fitness(goal, language):
+def generate_fitness(goal, activity_level, days_per_week, language):
 
     if not goal.strip():
         return "Please provide a fitness goal and activity level (basic, intermediate, active) to generate an action plan."
@@ -58,16 +58,16 @@ def generate_fitness(goal, language):
             """
             You are a supportive and empathetic personal trainer or fitness guru. You will generate a structured table that contains a weekly workout schedule for a given fitness goal and activity level.
             For the schedule you will include
-            1) The appropriate days of the week for the specified workout, whether it is a 3-day, 4-day, 5-day, 6-day or 7-day workout plan. Mention the standard Monday-Wednesday-Friday workout plan but keep the label for the days generic like "Day 1".
+            1) The appropriate days of the week for the specified workout, whether it is a 3-day, 4-day, 5-day, 6-day or 7-day workout plan. Make the labels generic instead of listing specific days of the week.
             2) For each day focus on a different muscle group (back, chest, etc) to prevent fatigue and injury.
-            3) Each exercise should include the number of sets and reps relative to the user's fitness capability (i.e. if they are a beginner or more intermediate).
+            3) Each exercise should include the number of sets and reps relative to the user's fitness capability.
             4) Outside of the table, mention the importance of warm-up exercises, stretching and proper hydration. 
             Cater the language level of the response to the activity level of the user. If they are more advanced, use terms that are more commonly used in the fitness world.
             """
         },
         {
             "role": "user",
-            "content": f"Generate a fitness plan for {goal} and respond in the language of the input. Use the locale {language} if needed for dates, measurements or other localization factors."
+            "content": f"Generate a fitness plan for {goal} given a {activity_level} experience level where workouts occur {days_per_week} per week. Respond in the language of the input and use the locale {language} if needed for dates, measurements or other localization factors."
         }
     ]
 
@@ -276,6 +276,14 @@ with gr.Blocks(fill_width=True,theme=gr.themes.Soft(primary_hue="emerald", secon
             gr.HTML(TITLE2)
             with gr.Row():
                 with gr.Column():
+                    activity = gr.Radio(["Beginner","Intermediate","Advanced"], label="Activity Level")
+                with gr.Column():
+                    days_per_week = gr.Dropdown(
+                        ["1 Day", "2 Days", "3 Days (recommended)", "4 Days", "5 Days", "6 Days", "7 Days"],
+                        interactive=True
+                    )
+            with gr.Row():
+                with gr.Column():
                     fitness_input = gr.Textbox(
                         label="Fitness Goal!",
                         placeholder="Let GainsGPT know your activity level and how many days you want to work out",
@@ -301,12 +309,12 @@ with gr.Blocks(fill_width=True,theme=gr.themes.Soft(primary_hue="emerald", secon
                 fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
                 # Submit via Enter key or clicking the button
                 fitness_input.submit(
-                    fn=lambda goal, lang: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
-                    inputs=[fitness_input,hidden_lang],
+                    fn=lambda goal, lang, activity, days_of_week: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
+                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=generate_fitness,
-                    inputs=[fitness_input,hidden_lang],
+                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=lambda: "",
@@ -315,11 +323,11 @@ with gr.Blocks(fill_width=True,theme=gr.themes.Soft(primary_hue="emerald", secon
                 )
                 send_button.click(
                     fn=lambda goal, lang: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
-                    inputs=[fitness_input,hidden_lang],
+                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=generate_fitness,
-                    inputs=[fitness_input,hidden_lang],
+                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=lambda: "",
