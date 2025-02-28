@@ -191,20 +191,6 @@ def generate_frNutrition_tts(input):
 # -------------------------------------------------------------------------
 
 # HTML & JS Elements: 
-TITLE = """ 
-<h1>Welcome to GainsGPT! </h1>
-<p>A state of the art chatbot who will help you reach your fitness goals and dream physique! </p>
-
-<p>Ask the AI Chatbot about creating fitness plans, defining workout goals or providing information about dietary requirements</p>
-
-<ul> 
-<li>Don't forget to check out the other two tabs</li>
-<li>Check out GainsGPT Fitness Plan Generator to make a fitness plan tailored to your specific needs </li>
-<li>Check out GainsGPT Nutrition Guide for any nutrition inquiries you may have to get to your fitness goals! </li>
-</ul>
-
-
-"""
 
 TITLE2 = """ 
 <h1>GainsGPT 💪🏼 Fitness Plan Generator</h1>
@@ -219,6 +205,11 @@ TITLE3 = """
 <h1>GainsGPT Nutrition Guide</h1>
 <p>Please provide any dietary restrictions (e.g., vegetarian, vegan, gluten-free, halal) you have to GainsGPT </p>
 """
+
+initial_prompt = [
+    (None, "Welcome to GainsGPT!\n\nA state of the art chatbot who will help you reach your fitness goals and dream physique!\n\nAsk GainsGPT if you have questions about working out, need tips on stretching, or want advice on nutrition and recovery. 💪"),
+    (None, "Don't forget to check out the GainsGPT Fitness Plan Generator to make a fitness plan tailored to your specific needs!")
+    ]
 
 js = """
 function setUserLanguage() {
@@ -242,14 +233,18 @@ background-color: #f0f0f0;
 # ----------------------------------------------------------------------------
 
 # Gradio Interface: 
-with gr.Blocks(fill_width=True,theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js, css = CSS) as demo:
-    hidden_lang = gr.Textbox(visible=False, elem_id="hidden-lang-box")
-    gr.Image("image.jpg", show_label=False, show_download_button = False, show_fullscreen_button = False)
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js, css = CSS) as demo:
+    
     with gr.Tabs():
         # General Chatbot: 
         with gr.TabItem("Inquire About Health"):
-            gr.HTML(TITLE)
-            chatbot = gr.Chatbot(label="Got Any Questions? 💪🏼")
+            with gr.Row():
+                hidden_lang = gr.Textbox(visible=False, elem_id="hidden-lang-box")
+                gr.Image("gainsgpt-banner.png", show_label=False, show_download_button = False, show_fullscreen_button = False, height="10rem")
+            # with gr.Row():
+            #     gr.HTML(TITLE)
+            with gr.Row():
+                chatbot = gr.Chatbot(label="Got Any Questions? 💪🏼", value=initial_prompt)
             with gr.Row(equal_height=True, height=60):
                 user_input = gr.Textbox(
                         placeholder="Type your question here...",
@@ -351,86 +346,6 @@ with gr.Blocks(fill_width=True,theme=gr.themes.Soft(primary_hue="emerald", secon
                 fr_pod_button.click(
                     fn=generate_frFitness_tts,
                     inputs=fitness_output,
-                    outputs=[podcast_output, audio_output]
-                )
-        # Nutrition Page 
-        with gr.TabItem("Generate Nutrition Plan"):
-            gr.HTML(TITLE3)
-
-            with gr.Row():
-                with gr.Column():
-                    nutrition_input = gr.Textbox(
-                        label="Nutrition Goal!",
-                        placeholder="Let GainsGPT know your nutrition goal and your dietary restrictions/preferences",
-                        lines=1
-                        )
-                    send_button = gr.Button("Show Me The Food 🥬", variant="secondary", elem_id="send-btn")  # Send button with an icon
-
-            with gr.Row():
-                with gr.Accordion(label="Some Quick Questions You Can Ask:"):
-                    example_questions = [
-                            ["Can you help me create a 7-day meal plan for weight loss?"],
-                            ["What are some healthy snacks I can include in my diet?"],
-                            ["I want to gain muscle. What should my meal plan look like?"],
-                            ["What are some vegetarian options for my weekly meal plan?"],
-                            ["How can I ensure I get enough protein in a vegan diet?"],
-                            ["Can you provide a balanced meal plan for general health?"],
-                            ["What are some gut-friendly foods I should include?"],
-                            ["How do I calculate portion sizes for my meals?"],
-                            ["Can you help me substitute gluten-free options in my meal plan?"],
-                            ["What are some low-calorie snacks that are high in protein?"],
-                            ["What’s a simple meal plan for beginners focusing on healthy eating?"],
-                            ["How can I manage my cravings while on a diet?"]
-                        ]
-
-                    gr.Examples(examples=example_questions, inputs=[nutrition_input])
-            with gr.Row():
-                nutrition_output = gr.Markdown("### Your Nutrition Plan Will Appear Here, Get Ready For The Yum!", elem_id="nutrition-markdown")
-                # Submit via Enter key or clicking the button
-                nutrition_input.submit(
-                    fn=lambda goal, lang: "Generating your nutrition plan... ⏳" if goal.strip() else "Please provide a nutrition goal first.",
-                    inputs=[nutrition_input,hidden_lang],
-                    outputs=nutrition_output
-                ).then(
-                    fn=generate_nutrition,
-                    inputs=[nutrition_input,hidden_lang],
-                    outputs=nutrition_output
-                ).then(
-                    fn=lambda: "",
-                    inputs=None,
-                    outputs=nutrition_input
-                )
-
-                send_button.click(
-                    fn=lambda goal, lang: "Generating your nutrition plan... ⏳" if goal.strip() else "Please provide a nutrition goal first.",
-                    inputs=[nutrition_input,hidden_lang],
-                    outputs=nutrition_output
-                ).then(
-                    fn=generate_nutrition,
-                    inputs=[nutrition_input,hidden_lang],
-                    outputs=nutrition_output
-                ).then(
-                    fn=lambda: "",
-                    inputs=None,
-                    outputs=nutrition_input
-                )
-            with gr.Row():
-                gr.HTML("<br> <hr> <br> <h2>Listen On The Go With Our Text To Speech Functionality</h2>")
-            with gr.Row():
-                podcast_output = gr.Textbox(label="Behind The Scenes of Your Nutrition Plan in Audio Form:", placeholder="A readable script will appear here!", interactive = False)
-            with gr.Row():
-                audio_output = gr.Audio(label="Want To Listen To Your Nutrition Plan?")
-            with gr.Row():
-                podcast_button = gr.Button("Generate English Podcast Script and Audio")
-                podcast_button.click(
-                    fn=generate_engNutrition_tts,
-                    inputs=nutrition_output,
-                    outputs=[podcast_output, audio_output]
-                )
-                fr_pod_button = gr.Button("Generate French Podcast Script and Audio")
-                fr_pod_button.click(
-                    fn=generate_frNutrition_tts,
-                    inputs=nutrition_output,
                     outputs=[podcast_output, audio_output]
                 )
 # ----------------------------------------------------------------------------
