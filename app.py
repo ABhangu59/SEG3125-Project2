@@ -135,19 +135,12 @@ function setUserLanguage() {
     }
 """
 
-CSS = """
-body { 
-background-color: #f0f0f0;
-}
-
-
-"""
 
 
 # ----------------------------------------------------------------------------
 
 # Gradio Interface: 
-with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js, css = CSS) as demo:
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js) as demo:
     
     with gr.Tabs():
         # General Chatbot: 
