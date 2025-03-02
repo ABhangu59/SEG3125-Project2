@@ -2,12 +2,12 @@ from gtts import gTTS
 from pydub import AudioSegment
 import tempfile
 
-def generate_audio(script: str) -> str:
-    if not script.strip():
-        raise ValueError("No script provided for audio conversion.")
+def generate_audio(input: str) -> str:
+    if not input.strip():
+        raise ValueError("No input provided for audio conversion.")
 
     # Generate TTS audio
-    textToSpeech = gTTS(text=script, lang="en", tld='ca')  # British English accent
+    textToSpeech = gTTS(text=input, lang="en", tld='ca')  # British English accent
     tempAudioPath = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
     textToSpeech.save(tempAudioPath)
 
@@ -18,7 +18,7 @@ def generate_audio(script: str) -> str:
     audio = audio.fade_in(100).fade_out(100)
 
     # Export the modified audio
-    podcast_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
-    audio.export(podcast_path, format="mp3")
+    audio_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+    audio.export(audio_path, format="mp3")
 
-    return podcast_path
+    return audio_path

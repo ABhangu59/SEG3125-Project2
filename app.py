@@ -3,7 +3,7 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 from generate_audio import generate_audio
-from script_generator import generate_script, generate_french_script, generate_french_nutrition_tts, generate_nutrition_tts
+from tts_generator import generate_english_message, generate_french_message
 
 load_dotenv()
 
@@ -94,7 +94,7 @@ def generate_engFitness_tts(input):
     queries = [msg[0] for msg in input if msg[0]]
     conversation_text = "\n".join(queries)
 
-    script = generate_script(conversation_text)
+    script = generate_english_message(conversation_text)
     audio_path = generate_audio(script)
 
     return audio_path
@@ -103,7 +103,7 @@ def generate_frFitness_tts(input):
     queries = [msg[0] for msg in input if msg[0]]
     conversation_text = "\n".join(queries)
 
-    script = generate_french_script(conversation_text)
+    script = generate_french_message(conversation_text)
     audio_path = generate_audio(script)
 
     return audio_path
@@ -113,9 +113,8 @@ def generate_frFitness_tts(input):
 
 TITLE2 = """ 
 <h1>GainsGPT 💪🏼 Fitness Plan Generator</h1>
-<p>Include the appropriate days of the week for the specified workout, whether it is a 3-day, 4-day, 5-day, 6-day or 7-day workout plan</p>
 
-<p> Please specify your fitness level [beginner, intermediate, advanced] and GainsGPT will generate a workout plan for you!</p>
+<p> Please specify your fitness level and how many days per week you would like to work out, and GainsGPT will generate a workout plan for you!</p>
 <p>Generate a structured table that contains a weekly workout schedule for a given fitness goal and activity level</p>
 <hr>
 
@@ -190,7 +189,8 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                 with gr.Column():
                     days_per_week = gr.Dropdown(
                         ["1 Day", "2 Days", "3 Days (recommended)", "4 Days", "5 Days", "6 Days", "7 Days"],
-                        interactive=True
+                        interactive=True,
+                        label="Workout Days Per Week"
                     )
             with gr.Row():
                 with gr.Column():
@@ -230,7 +230,7 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                     outputs=fitness_input
                 )
                 send_button.click(
-                    fn=lambda goal, lang: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
+                    fn=lambda goal, lang, activity, days_of_week: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
                     inputs=[fitness_input, activity, days_per_week, hidden_lang],
                     outputs=fitness_output
                 ).then(
