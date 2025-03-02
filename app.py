@@ -87,69 +87,6 @@ def generate_fitness(goal, activity_level, days_per_week, language):
 
     return fitness_content
 
-def generate_nutrition(goal, language):
-    if not goal.strip():
-        return "Please provide a nutrition goal (weight loss, muscle gain, balanced diet) to generate a meal plan."
-    messages = [
-    {
-        "role": "system",
-        "content": 
-        """
-        You are a highly skilled and empathetic nutritionist and dietitian with expertise in meal planning, macronutrient balance, and dietary optimization. 
-        Your role is to create a personalized, structured, and macro-based weekly meal plan that aligns with the user's specific dietary goal.
-
-        For the meal plan, you will: 
-        1) Generate a 7-day meal plan with detailed food recommendations tailored to the given nutrition goal.
-        2) Each day should include Breakfast, Lunch, Dinner, and Snacks, ensuring variety and nutrient balance.
-        3) Label the days as "Day 1," "Day 2," etc., in the appropriate language to maintain flexibility while structuring a sustainable plan.
-        4) For each meal, suggest portion sizes, macronutrient breakdown (carbs, proteins, fats), and specific food items that align with the user’s goal.
-        5) Provide substitutions for common dietary restrictions (e.g., vegetarian, vegan, gluten-free, halal) if needed.
-
-        Personalization Based on Goal:
-        1) Weight Loss:
-            - Focus on caloric deficit while maintaining high-protein, fiber-rich foods to promote satiety.
-            - Incorporate healthy fats (avocados, nuts) and complex carbohydrates (quinoa, sweet potatoes).
-            - Recommend low-calorie, nutrient-dense snacks to prevent binge eating.
-            - Discuss the importance of not developing an unhealthy relationship with food
-
-        2) Muscle Gain:
-            - Prioritize a high-protein diet (lean meats, fish, tofu, eggs).
-            - Include pre- and post-workout nutrition recommendations.
-            - Ensure progressive caloric surplus with healthy carbs (oats, brown rice) and fats.
-
-        3) Balanced Diet (General Health & Well-being):
-            - Emphasize micronutrients (vitamins & minerals) with a diverse range of vegetables, lean proteins, whole grains, and healthy fats.
-            - Suggest gut-friendly foods (probiotics, fermented foods).
-            - Encourage meal timing strategies for sustained energy levels.
-
-        Output Format:
-        - The meal plan should be presented in a clean and structured table.
-        - Provide a brief summary below the table to reinforce key takeaways.
-        - Use clear, concise language while maintaining a supportive tone.
-        - If the user is a beginner, then please use less complex language to make it more inclusive and beginner friendly. 
-        """
-    },
-    {
-        "role": "user",
-        "content": f"Generate a nutrition plan for {goal} and respond in the language of the input. Use the locale {language} if needed for dates, measurements or other localization factors."    
-    }
-    ]
-
-    completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=messages,
-        temperature=1,
-        max_completion_tokens=1024,
-        top_p=1, #controls the diversity, higher values increase divversity while lower values make responses more deterministic
-        stream=True,
-        stop=None,
-    )
-
-    nutrition_content = ""
-    for chunk in completion:
-            nutrition_content += chunk.choices[0].delta.content or ""
-
-    return nutrition_content
 #--------------------------------------------------------------------------------------------------
 
 # Functions for Text To Speech: 
@@ -160,7 +97,7 @@ def generate_engFitness_tts(input):
     script = generate_script(conversation_text)
     audio_path = generate_audio(script)
 
-    return script, audio_path
+    return audio_path
 
 def generate_frFitness_tts(input):
     queries = [msg[0] for msg in input if msg[0]]
@@ -169,25 +106,7 @@ def generate_frFitness_tts(input):
     script = generate_french_script(conversation_text)
     audio_path = generate_audio(script)
 
-    return script, audio_path
-
-def generate_engNutrition_tts(input):
-    queries = [msg[0] for msg in input if msg[0]]
-    conversation_text = "\n".join(queries)
-
-    script = generate_nutrition_tts(conversation_text)
-    audio_path = generate_audio(script)
-
-    return script, audio_path
-
-def generate_frNutrition_tts(input):
-    queries = [msg[0] for msg in input if msg[0]]
-    conversation_text = "\n".join(queries)
-
-    script = generate_french_nutrition_tts(conversation_text)
-    audio_path = generate_audio(script)
-
-    return script, audio_path
+    return audio_path
 # -------------------------------------------------------------------------
 
 # HTML & JS Elements: 
@@ -200,10 +119,6 @@ TITLE2 = """
 <p>Generate a structured table that contains a weekly workout schedule for a given fitness goal and activity level</p>
 <hr>
 
-"""
-TITLE3 = """ 
-<h1>GainsGPT Nutrition Guide</h1>
-<p>Please provide any dietary restrictions (e.g., vegetarian, vegan, gluten-free, halal) you have to GainsGPT </p>
 """
 
 initial_prompt = [
@@ -288,17 +203,15 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
             with gr.Row():
                 with gr.Accordion(label="Some Questions You Can Ask:"):
                     example_questions = [
-                            ["What's a good workout plan for beginners?"],
-                            ["How can I build muscle effectively?"],
-                            ["What are the best exercises for fat loss?"],
-                            ["What’s a good workout split for a 4-day routine?"],
-                            ["What’s the best way to recover after a tough workout?"],
-                            ["Is cardio necessary for weight loss?"],
-                            ["Can I build muscle with just bodyweight exercises?"],
-                            ["How do I prevent injuries while working out?"],
-                            ["As a beginner, whats 5 day routine I can use to get started on my fitness journey?"],
-
-                        ]
+                    ["What’s the best workout plan to lose 2 lbs per week?"],
+                    ["How can I build muscle while keeping my body fat under 15%?"],
+                    ["What exercises are most effective for lowering blood pressure?"],
+                    ["What’s an optimal 4-day workout routine to improve heart health?"],
+                    ["How can I recover faster to maintain a consistent fat loss routine?"],
+                    ["Is cardio necessary to lose 1.5 lbs per week, or can I rely on strength training?"],
+                    ["What are the best workouts to prevent injuries while training for weight loss?"],
+                    ["As a beginner, I would like lose 10 lbs in two months and improve endurance, how can I go about this??"]
+                ]
                     gr.Examples(examples=example_questions, inputs=[fitness_input])
             with gr.Row():
                 fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
@@ -332,21 +245,19 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
             with gr.Row():
                 gr.HTML("<br> <hr> <br> <h2>Listen On The Go With Our Text To Speech Functionality</h2>")
             with gr.Row():
-                podcast_output = gr.Textbox(label="Behind The Scenes of Your Fitness Plan in Audio Form:", placeholder="A readable script will appear here!", interactive = False)
-            with gr.Row():
                 audio_output = gr.Audio(label="Want To Listen To Your Fitness Plan?")
             with gr.Row():
-                podcast_button = gr.Button("Generate English Podcast Script and Audio")
+                podcast_button = gr.Button("Listen to an English Fitness Plan")
                 podcast_button.click(
                     fn=generate_engFitness_tts,
                     inputs=fitness_output,
-                    outputs=[podcast_output, audio_output]
+                    outputs=audio_output
                 )
-                fr_pod_button = gr.Button("Generate French Podcast Script and Audio")
+                fr_pod_button = gr.Button("Listen to a French Fitness Plan")
                 fr_pod_button.click(
                     fn=generate_frFitness_tts,
                     inputs=fitness_output,
-                    outputs=[podcast_output, audio_output]
+                    outputs=audio_output
                 )
 # ----------------------------------------------------------------------------
 
