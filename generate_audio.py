@@ -2,12 +2,16 @@ from gtts import gTTS
 from pydub import AudioSegment
 import tempfile
 
-def generate_audio(input: str) -> str:
+def generate_audio(input: str, french=False) -> str:
     if not input.strip():
         raise ValueError("No input provided for audio conversion.")
 
-    # Generate TTS audio
-    textToSpeech = gTTS(text=input, lang="en", tld='ca')  # British English accent
+    if french == False:
+        # Generate TTS audio
+        textToSpeech = gTTS(text=input, lang="en", tld='ca')  # British English accent
+    elif french == True:
+        textToSpeech = gTTS(text=input, lang="fr", tld='ca') # Canadian French accent
+
     tempAudioPath = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
     textToSpeech.save(tempAudioPath)
 

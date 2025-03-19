@@ -13,6 +13,11 @@ client = Groq(api_key=api_key)
 
 conversation_history = []
 
+def clear_chat():
+    global conversation_history
+    conversation_history = []  
+    return []  
+
 # Functions for setting up the different chatbot streams
 def chatbot_stream(user_input):
     global conversation_history
@@ -22,7 +27,7 @@ def chatbot_stream(user_input):
     if len(conversation_history) == 1:
         conversation_history.insert(0, {
             "role": "system",
-            "content": "You are an expert on personal training, nutrition and fitness. Provide concise, structured and insightful respones to general queries about fitness, working out or general dietary goals"
+            "content": "You are an expert on personal training, nutrition and fitness. Provide concise, structured and insightful respones to general queries about fitness, working out or general dietary goals. Use the user's language and locale to provide the most accurate information. Reply to the user in only the language that they prompt you with, as in if they use English reply in English, if they use French reply in French. "
         })
 
     # Turning on the big ol AI brain 
@@ -56,7 +61,7 @@ def generate_fitness(goal, activity_level, days_per_week, language):
             "role": "system",
             "content": 
             """
-            You are a supportive and empathetic personal trainer or fitness guru. You will generate a structured table that contains a weekly workout schedule for a given fitness goal and activity level.
+            You are a supportive and empathetic personal trainer or fitness guru. You will generate structured tables that contains a weekly workout schedule seperated by each day (a new table per day) for a given fitness goal and activity level.
             For the schedule you will include
             1) The appropriate days of the week for the specified workout, whether it is a 3-day, 4-day, 5-day, 6-day or 7-day workout plan. Make the labels generic instead of listing specific days of the week.
             2) For each day focus on a different muscle group (back, chest, etc) to prevent fatigue and injury.
@@ -67,7 +72,7 @@ def generate_fitness(goal, activity_level, days_per_week, language):
         },
         {
             "role": "user",
-            "content": f"Generate a fitness plan for {goal} given a {activity_level} experience level where workouts occur {days_per_week} per week. Respond in the language of the input and use the locale {language} if needed for dates, measurements or other localization factors."
+            "content": f"Generate a fitness plan for {goal} given a {activity_level} experience level where workouts occur {days_per_week} per week, with {where_workout} determines the equipment you should mention, assume if At Home is selected then do not mention Gym Equipment (either at home or at the gym and adjust the fitness plan accordingly regarding Equipment). Respond in the language of the input and use the locale {language} if needed for dates, measurements or other localization factors. Reply to the user in only the language that they prompt you with, as in if they use English reply in English ONLY, if they prompt in French reply in French ONLY. "
         }
     ]
 
@@ -92,19 +97,29 @@ def generate_fitness(goal, activity_level, days_per_week, language):
 # Functions for Text To Speech: 
 def generate_engFitness_tts(input):
     queries = [msg[0] for msg in input if msg[0]]
-    conversation_text = "\n".join(queries)
 
-    script = generate_english_message(conversation_text)
+    # If no messages exist, return a default script
+    if not queries:
+        script = "Please generate a fitness plan first before creating an on-the-go workout audio."
+    else:
+        conversation_text = "\n".join(queries)
+        script = generate_english_message(conversation_text)
+
     audio_path = generate_audio(script)
 
     return audio_path
 
 def generate_frFitness_tts(input):
     queries = [msg[0] for msg in input if msg[0]]
-    conversation_text = "\n".join(queries)
+    # If no messages exist, return a default script in French
+    if not queries:
+        script = "Veuillez d'abord générer un plan de remise en forme avant de créer un audio d'entraînement à emporter."
+        print("\n Hellow World ")
+    else:
+        conversation_text = "\n".join(queries)
+        script = generate_french_message(conversation_text)
 
-    script = generate_french_message(conversation_text)
-    audio_path = generate_audio(script)
+    audio_path = generate_audio(script, True) # Added a parameter for the French language
 
     return audio_path
 # -------------------------------------------------------------------------
@@ -140,8 +155,7 @@ function setUserLanguage() {
 # ----------------------------------------------------------------------------
 
 # Gradio Interface: 
-with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js) as demo:
-    
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow", mode = "dark"), js=js) as demo:
     with gr.Tabs():
         # General Chatbot: 
         with gr.TabItem("Inquire About Health"):
@@ -161,6 +175,12 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                         scale=1
                     )
                 send_button = gr.Button("Ask", elem_classes="btn-1", scale=0)
+                clear_button = gr.Button("Clear", elem_classes="btn-2", scale=0)
+                clear_button.click(
+                    fn=clear_chat,
+                    inputs=None,
+                    outputs=chatbot
+                )
 
                 # Chatbot functionality: Update chatbot and clear text input
                 send_button.click(
@@ -185,16 +205,17 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                         interactive=True,
                         label="Workout Days Per Week"
                     )
+                with gr.Column():
+                    where_workout = gr.Radio(["At Home", "At A Gym"], label="Where Will You Be Working Out?")
             with gr.Row():
                 with gr.Column():
                     fitness_input = gr.Textbox(
                         label="Fitness Goal!",
                         placeholder="Let GainsGPT know your activity level and how many days you want to work out",
-                        lines=1
+                        lines=1,
+                        render = False
                         )
-                    send_button = gr.Button("Show Me The Gains 🏋️‍♀️", variant="secondary", elem_id="send-btn")  # Send button with an icon
-            with gr.Row():
-                with gr.Accordion(label="Some Questions You Can Ask:"):
+                    # Tweaked this to adjust to the feedback for User
                     example_questions = [
                     ["What’s the best workout plan to lose 2 lbs per week?"],
                     ["How can I build muscle while keeping my body fat under 15%?"],
@@ -204,8 +225,12 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                     ["Is cardio necessary to lose 1.5 lbs per week, or can I rely on strength training?"],
                     ["What are the best workouts to prevent injuries while training for weight loss?"],
                     ["As a beginner, I would like lose 10 lbs in two months and improve endurance, how can I go about this??"]
-                ]
-                    gr.Examples(examples=example_questions, inputs=[fitness_input])
+                    ]
+                    with gr.Accordion(label="Some Questions You Can Ask:"):
+                        gr.Examples(examples=example_questions, inputs=[fitness_input])
+
+                    fitness_input.render()
+                    send_button = gr.Button("Show Me The Gains 🏋️‍♀️", variant="secondary", elem_id="send-btn")  # Send button with an icon
             with gr.Row():
                 fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
                 # Submit via Enter key or clicking the button
