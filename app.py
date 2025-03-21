@@ -52,7 +52,7 @@ def chatbot_stream(user_input):
             msg["content"] if msg["role"] == "assistant" else None) 
             for msg in conversation_history]
 
-def generate_fitness(goal, activity_level, days_per_week, language):
+def generate_fitness(goal, activity_level, days_per_week, where_workout, language):
 
     if not goal.strip():
         return "Please provide a fitness goal and activity level (basic, intermediate, active) to generate an action plan."
@@ -72,7 +72,7 @@ def generate_fitness(goal, activity_level, days_per_week, language):
         },
         {
             "role": "user",
-            "content": f"Generate a fitness plan for {goal} given a {activity_level} experience level where workouts occur {days_per_week} per week, with {where_workout} determines the equipment you should mention, assume if At Home is selected then do not mention Gym Equipment (either at home or at the gym and adjust the fitness plan accordingly regarding Equipment). Respond in the language of the input and use the locale {language} if needed for dates, measurements or other localization factors. Reply to the user in only the language that they prompt you with, as in if they use English reply in English ONLY, if they prompt in French reply in French ONLY. "
+            "content": f"Generate a fitness plan for {goal} given a {activity_level} experience level where workouts occur {days_per_week} per week, with {where_workout} determining the equipment you should mention, assume if At Home is selected then do not mention Gym Equipment (either at home or at the gym and adjust the fitness plan accordingly regarding Equipment). Respond in the language of the input and use the locale {language} if needed for dates, measurements or other localization factors. Reply to the user in only the language that they prompt you with, as in if they use English reply in English ONLY, if they prompt in French reply in French ONLY. "
         }
     ]
 
@@ -155,7 +155,7 @@ function setUserLanguage() {
 # ----------------------------------------------------------------------------
 
 # Gradio Interface: 
-with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow", mode = "dark"), js=js) as demo:
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow"), js=js) as demo:
     with gr.Tabs():
         # General Chatbot: 
         with gr.TabItem("Inquire About Health"):
@@ -235,12 +235,12 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                 fitness_output = gr.Markdown("### Your Fitness Plan Will Appear Here, Get Ready For The Gains!", elem_id="fitness-markdown")
                 # Submit via Enter key or clicking the button
                 fitness_input.submit(
-                    fn=lambda goal, lang, activity, days_of_week: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
-                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
+                    fn=lambda goal, lang, activity, days_of_week, where_workout: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
+                    inputs=[fitness_input, activity, days_per_week, where_workout, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=generate_fitness,
-                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
+                    inputs=[fitness_input, activity, days_per_week, where_workout, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=lambda: "",
@@ -248,12 +248,12 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="yellow
                     outputs=fitness_input
                 )
                 send_button.click(
-                    fn=lambda goal, lang, activity, days_of_week: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
-                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
+                    fn=lambda goal, lang, activity, days_of_week, where_workout: "Generating your fitness plan... ⏳" if goal.strip() else "Please provide a fitness goal first.",
+                    inputs=[fitness_input, activity, days_per_week, where_workout, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=generate_fitness,
-                    inputs=[fitness_input, activity, days_per_week, hidden_lang],
+                    inputs=[fitness_input, activity, days_per_week, where_workout, hidden_lang],
                     outputs=fitness_output
                 ).then(
                     fn=lambda: "",
